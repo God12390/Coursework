@@ -7,11 +7,10 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Media.Media3D;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-
+using OxyPlot;
+using OxyPlot.Annotations;
+using OxyPlot.Axes;
+using OxyPlot.Series;
 namespace Coursework
 {
     /// <summary>
@@ -27,6 +26,8 @@ namespace Coursework
     {
         private Matrix matrix;
         private string selectedFileName;
+        private PlotModel plotModel;
+        private double[] coefficients;
         public MainWindow()
         {
             InitializeComponent();
@@ -69,9 +70,9 @@ namespace Coursework
                 {
                     Label label = new Label();
                     label.Content = $"A{i + 1}{j + 1}";
-                    label.HorizontalAlignment = HorizontalAlignment.Center;
-                    label.VerticalAlignment = VerticalAlignment.Center;
-                    label.FontWeight = FontWeights.Bold;
+                    label.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+                    label.VerticalAlignment = System.Windows.VerticalAlignment.Center;
+                    label.FontWeight = System.Windows.FontWeights.Bold;
                     Grid.SetRow(label, i);
                     Grid.SetColumn(label, j * 2);
                     MatrixGrid.Children.Add(label);
@@ -82,8 +83,8 @@ namespace Coursework
                     textBox.MaxLength = 5;
                     textBox.Width = 50;
                     textBox.Height = 23;
-                    textBox.HorizontalAlignment = HorizontalAlignment.Center;
-                    textBox.VerticalAlignment = VerticalAlignment.Center;
+                    textBox.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+                    textBox.VerticalAlignment = System.Windows.VerticalAlignment.Center;
                     textBox.Margin = new Thickness(5);
 
                     Grid.SetRow(textBox, i);
@@ -132,7 +133,7 @@ namespace Coursework
             else if (method == 1)
             {
                 DanilevskiyMethod danilevskiyMethod = new DanilevskiyMethod(matrix);
-                (eigenValues, List<Matrix> similarityMatrices) = danilevskiyMethod.GetEigenValues();
+                (eigenValues, List<Matrix> similarityMatrices, coefficients) = danilevskiyMethod.GetEigenValues();
                 eigenVectors = danilevskiyMethod.GetEigenVectors(eigenValues, similarityMatrices);
                 eigenPairs = new List<EigenPair>();
                 for (int i = 0; i < eigenValues.Count; i++)
@@ -220,6 +221,84 @@ namespace Coursework
                 string selectedFilePath = saveFileDialog.FileName;
                 SelectedFile.Text = selectedFilePath;
             }
+        }
+        private void InitializePlotModel()
+        {
+            plotModel = new PlotModel { Title = "Polynomial Graph" };
+            var xAxis = new LinearAxis
+            {
+                Position = AxisPosition.Bottom,
+                Title = "x",
+                MajorGridlineStyle = LineStyle.Solid,
+                MajorGridlineColor = OxyColors.LightGray,
+                AxisTitleDistance = 20,
+                AxisTickToLabelDistance = 0,
+                MinimumRange = 1, // Змініть це значення відповідно до вашого вимоги
+                AbsoluteMaximum = 500,
+                StartPosition = 0, // Максимальне значення осі x
+                AbsoluteMinimum = -500 // Мінімальне значення осі x
+            };
+
+            var yAxis = new LinearAxis
+            {
+                Position = AxisPosition.Left,
+                Title = "y",
+                MajorGridlineStyle = LineStyle.Solid,
+                MajorGridlineColor = OxyColors.LightGray,
+                AxisTitleDistance = 20,
+                AxisTickToLabelDistance = 0,
+                MinimumRange = 1, // Змініть це значення відповідно до вашого вимоги
+                StartPosition = 0,
+                AbsoluteMaximum = 500, // Максимальне значення осі y
+                AbsoluteMinimum = -500 // Мінімальне значення осі y
+            };
+
+            plotModel.Axes.Add(xAxis);
+            plotModel.Axes.Add(yAxis);
+            LineSeries series = new LineSeries();
+            series.Color = OxyColors.Blue;
+
+            for (double x = -100; x <= 100; x += 0.01)
+            {
+                double y = 0;
+                for (int i = 0; i < coefficients.Length; i++)
+                {
+                    y += coefficients[i] * Math.Pow(x, coefficients.Length - 1 - i);
+                }
+                if (!Double.IsNaN(y))
+                {
+                    series.Points.Add(new DataPoint(x, y));
+                }
+            }
+
+            plotModel.Series.Add(series);
+            var verticalLine = new LineAnnotation
+            {
+                Color = OxyColors.Black,
+                Type = LineAnnotationType.Vertical,
+                X = 0,
+                MinimumY = -1000000,
+                MaximumY = 1000000,
+                LineStyle = LineStyle.Solid
+            };
+            plotModel.Annotations.Add(verticalLine);
+
+            var horizontalLine = new LineAnnotation
+            {
+                Color = OxyColors.Black,
+                Type = LineAnnotationType.Horizontal,
+                Y = 0,
+                MinimumX = -1000000,
+                MaximumX = 1000000,
+                LineStyle = LineStyle.Solid
+            };
+            plotModel.Annotations.Add(horizontalLine);
+
+            plotView.Model = plotModel;
+        }
+        private void BuildGraphButton(object sender, RoutedEventArgs e)
+        {
+            InitializePlotModel();
         }
     }
   

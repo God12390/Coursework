@@ -61,7 +61,7 @@ namespace Coursework
             }
             return (A, arrayB);
         }
-        public (List<double>, List<Matrix>) GetEigenValues()
+        public (List<double>, List<Matrix>, double[]) GetEigenValues()
         {
             var (coefficientsMatrix, arrayB) = GetNormalForm();
             List<double> polynomialCoefficients = coefficientsMatrix.matrix[0];
@@ -83,7 +83,8 @@ namespace Coursework
                     eigenValues.Add(root.Real);
                 }
             }
-            return (eigenValues, arrayB);
+            Array.Reverse(coefficients);
+            return (eigenValues, arrayB, coefficients);
         }
         public List<List<double>> GetEigenVectors(List<double> ownValues, List<Matrix> similarityMatrices)
         {

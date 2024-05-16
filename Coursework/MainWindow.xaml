@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:oxy="clr-namespace:OxyPlot.Wpf;assembly=OxyPlot.Wpf"
         xmlns:local="clr-namespace:Coursework"
         mc:Ignorable="d"
         Title="Calculator" Height="700" Width="1000">
@@ -47,7 +48,6 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="1*"></RowDefinition>
                     <RowDefinition Height="1.1*"></RowDefinition>
-                    <RowDefinition Height="0.3*"></RowDefinition>
                     <RowDefinition Height="0.4*"></RowDefinition>
                 </Grid.RowDefinitions>
                 <!-- Додайте ваші елементи у Grid -->
@@ -56,21 +56,25 @@
 
                     </Grid>
                 </Grid>
-                <Border Grid.Row="1" BorderBrush="Blue" BorderThickness="1" CornerRadius="10" Margin="3">
-
-                </Border>
-                <Border Grid.Row="2" BorderBrush="Blue" BorderThickness="1" CornerRadius="10" Margin="3">
-                    <Grid Grid.Row="2" Margin="5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition></ColumnDefinition>
-                            <ColumnDefinition></ColumnDefinition>
-                            <ColumnDefinition></ColumnDefinition>
-                            <ColumnDefinition></ColumnDefinition>
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Margin="30, 5, 30, 5" Style="{StaticResource CustomButtonStyle}" Content="Draw" FontSize="20"></Button>
-                        <Button Grid.Column="1" Margin="30, 5, 30, 5" Style="{StaticResource CustomButtonStyle}" Content="Complexity" FontSize="20"></Button>
-                        <Button Grid.Column="2" Margin="30, 5, 30, 5" Style="{StaticResource CustomButtonStyle}" Content="Clear" Click="ButtonClear" FontSize="20"></Button>
-                        <Button Grid.Column="3" Margin="30, 5, 30, 5" Content="Save" Click="ButtonSave" x:Name="ButtonSaveIntoFile" FontSize="20">
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4*"></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid Grid.Column="0">
+                        <oxy:PlotView x:Name="plotView"/>
+                    </Grid>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition></RowDefinition>
+                            <RowDefinition></RowDefinition>
+                            <RowDefinition></RowDefinition>
+                            <RowDefinition></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <Button Grid.Row="0" Margin="5, 10, 5, 10" Style="{StaticResource CustomButtonStyle}" Content="Build graph" FontSize="20" Click="BuildGraphButton"></Button>
+                        <Button Grid.Row="1" Margin="5, 10, 5, 10" Style="{StaticResource CustomButtonStyle}" Content="Complexity" FontSize="20"></Button>
+                        <Button Grid.Row="3" Margin="5, 10, 5, 10" Style="{StaticResource CustomButtonStyle}" Content="Clear" Click="ButtonClear" FontSize="20"></Button>
+                        <Button Grid.Row="2" Margin="5, 10, 5, 10" Content="Save" Click="ButtonSave" x:Name="ButtonSaveIntoFile" FontSize="20">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource CustomButtonStyle}">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -86,7 +90,8 @@
                             </Button.Style>
                         </Button>
                     </Grid>
-                </Border>
+                </Grid>
+
                 <Border Grid.Row="3" BorderBrush="Blue" BorderThickness="1" CornerRadius="10" Margin="3">
                     <Grid Grid.Row="3" Margin="5">
                         <DataGrid x:Name="EigenDataGrid" Grid.Row="1" Grid.Column="0" AutoGenerateColumns="False">
