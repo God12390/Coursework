@@ -25,9 +25,9 @@ namespace Coursework
     public partial class MainWindow : Window
     {
         private Matrix matrix;
-        private string selectedFileName;
-        private PlotModel plotModel;
-        private double[] coefficients;
+        private double[] polynomialCoefficients;
+        private Graph graph { get; set; }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -133,7 +133,8 @@ namespace Coursework
             else if (method == 1)
             {
                 DanilevskiyMethod danilevskiyMethod = new DanilevskiyMethod(matrix);
-                (eigenValues, List<Matrix> similarityMatrices, coefficients) = danilevskiyMethod.GetEigenValues();
+                (eigenValues, List<Matrix> similarityMatrices, polynomialCoefficients) = danilevskiyMethod.GetEigenValues();
+                graph = new Graph(polynomialCoefficients, eigenValues.Min(), eigenValues.Max());
                 eigenVectors = danilevskiyMethod.GetEigenVectors(eigenValues, similarityMatrices);
                 eigenPairs = new List<EigenPair>();
                 for (int i = 0; i < eigenValues.Count; i++)
@@ -144,29 +145,18 @@ namespace Coursework
             }
             else if (method == 2)
             {
-                if (SelectedTolerance.SelectedItem != null)
+                string toleranceValue = (SelectedTolerance.SelectedItem as ComboBoxItem).Content.ToString();
+                if (double.TryParse(toleranceValue, out double tolerance))
                 {
-                    string toleranceValue = (SelectedTolerance.SelectedItem as ComboBoxItem).Content.ToString();
-                    if (double.TryParse(toleranceValue, out double tolerance))
+                    RotationMethod rotationMethod = new RotationMethod(matrix);
+                    (eigenValues, List<Matrix> rotationMatrixes) = rotationMethod.findEigenvalues(tolerance);
+                    eigenVectors = rotationMethod.findEigenVectors(rotationMatrixes, tolerance);
+                    eigenPairs = new List<EigenPair>(); // Присвоєння нового значення
+                    for (int i = 0; i < eigenValues.Count; i++)
                     {
-                        RotationMethod rotationMethod = new RotationMethod(matrix);
-                        (eigenValues, List<Matrix> rotationMatrixes) = rotationMethod.findEigenvalues(tolerance);
-                        eigenVectors = rotationMethod.findEigenVectors(rotationMatrixes, tolerance);
-                        eigenPairs = new List<EigenPair>(); // Присвоєння нового значення
-                        for (int i = 0; i < eigenValues.Count; i++)
-                        {
-                            eigenPairs.Add(new EigenPair { EigenValue = eigenValues[i], EigenVector = eigenVectors[i].ToArray() });
-                        }
-                        EigenDataGrid.ItemsSource = eigenPairs;
+                        eigenPairs.Add(new EigenPair { EigenValue = eigenValues[i], EigenVector = eigenVectors[i].ToArray() });
                     }
-                    else
-                    {
-                        MessageBox.Show("An error occurred while selecting tolerance");
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("An error occurred while selecting tolerance");
+                    EigenDataGrid.ItemsSource = eigenPairs;
                 }
             }
             ButtonSaveIntoFile.Visibility = eigenPairs.Any() ? Visibility.Visible : Visibility.Collapsed;
@@ -175,6 +165,8 @@ namespace Coursework
         {
             int size = matrix.matrix.Count;
             this.matrix = new Matrix(size);
+            plotView.Visibility = Visibility.Collapsed;
+            EigenDataGrid.ItemsSource = null;
             foreach (UIElement element in MatrixGrid.Children)
             {
                 if (element is TextBox)
@@ -188,7 +180,7 @@ namespace Coursework
         private void ButtonSave(object sender, RoutedEventArgs e)
         {
             string selectedFilePath = SelectedFile.Text;
-            if (!string.IsNullOrEmpty(selectedFilePath))
+            if (!string.IsNullOrEmpty(selectedFilePath) && selectedFilePath != "__________")
             {
                 List<EigenPair> eigenPairs = EigenDataGrid.ItemsSource as List<EigenPair>;
                 if (eigenPairs != null && eigenPairs.Any())
@@ -197,8 +189,9 @@ namespace Coursework
                     {
                         foreach (EigenPair pair in eigenPairs)
                         {
-                            writer.WriteLine($"{pair.EigenValue} | [{pair.EigenVectorString}]");
+                            writer.WriteLine($"Eigen value: {pair.EigenValue} | Eigen vector: [{pair.EigenVectorString}]");
                         }
+                        writer.WriteLine(new string('-', 35));
                     }
                     MessageBox.Show("Data saved successfully.");
                 }
@@ -222,83 +215,10 @@ namespace Coursework
                 SelectedFile.Text = selectedFilePath;
             }
         }
-        private void InitializePlotModel()
-        {
-            plotModel = new PlotModel { Title = "Polynomial Graph" };
-            var xAxis = new LinearAxis
-            {
-                Position = AxisPosition.Bottom,
-                Title = "x",
-                MajorGridlineStyle = LineStyle.Solid,
-                MajorGridlineColor = OxyColors.LightGray,
-                AxisTitleDistance = 20,
-                AxisTickToLabelDistance = 0,
-                MinimumRange = 1, // Змініть це значення відповідно до вашого вимоги
-                AbsoluteMaximum = 500,
-                StartPosition = 0, // Максимальне значення осі x
-                AbsoluteMinimum = -500 // Мінімальне значення осі x
-            };
-
-            var yAxis = new LinearAxis
-            {
-                Position = AxisPosition.Left,
-                Title = "y",
-                MajorGridlineStyle = LineStyle.Solid,
-                MajorGridlineColor = OxyColors.LightGray,
-                AxisTitleDistance = 20,
-                AxisTickToLabelDistance = 0,
-                MinimumRange = 1, // Змініть це значення відповідно до вашого вимоги
-                StartPosition = 0,
-                AbsoluteMaximum = 500, // Максимальне значення осі y
-                AbsoluteMinimum = -500 // Мінімальне значення осі y
-            };
-
-            plotModel.Axes.Add(xAxis);
-            plotModel.Axes.Add(yAxis);
-            LineSeries series = new LineSeries();
-            series.Color = OxyColors.Blue;
-
-            for (double x = -100; x <= 100; x += 0.01)
-            {
-                double y = 0;
-                for (int i = 0; i < coefficients.Length; i++)
-                {
-                    y += coefficients[i] * Math.Pow(x, coefficients.Length - 1 - i);
-                }
-                if (!Double.IsNaN(y))
-                {
-                    series.Points.Add(new DataPoint(x, y));
-                }
-            }
-
-            plotModel.Series.Add(series);
-            var verticalLine = new LineAnnotation
-            {
-                Color = OxyColors.Black,
-                Type = LineAnnotationType.Vertical,
-                X = 0,
-                MinimumY = -1000000,
-                MaximumY = 1000000,
-                LineStyle = LineStyle.Solid
-            };
-            plotModel.Annotations.Add(verticalLine);
-
-            var horizontalLine = new LineAnnotation
-            {
-                Color = OxyColors.Black,
-                Type = LineAnnotationType.Horizontal,
-                Y = 0,
-                MinimumX = -1000000,
-                MaximumX = 1000000,
-                LineStyle = LineStyle.Solid
-            };
-            plotModel.Annotations.Add(horizontalLine);
-
-            plotView.Model = plotModel;
-        }
         private void BuildGraphButton(object sender, RoutedEventArgs e)
         {
-            InitializePlotModel();
+            plotView.Visibility = Visibility.Visible;
+            plotView.Model = graph.BuildGraph();
         }
     }
   
