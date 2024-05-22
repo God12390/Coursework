@@ -1,4 +1,5 @@
 ﻿using OxyPlot;
+using System.Windows;
 
 namespace Coursework
 {
@@ -7,14 +8,21 @@ namespace Coursework
     {
         private Graph graph;
 
-        public GraphController(double[] polynomialCoefficients, double minX, double maxX)
+        public GraphController(double[] polynomialCoefficients, double minX, double maxX, double[] roots)
         {
-            graph = new Graph(polynomialCoefficients, minX, maxX);
+            graph = new Graph(polynomialCoefficients, minX, maxX, roots);
         }
 
-        public PlotModel BuildGraph()
+        public PlotModel buildGraph()
         {
-            return graph.BuildGraph();
+            try
+            {
+                return graph.buildGraph();
+            }
+            catch (Exception)
+            {
+                throw new Exception("Program cannot build this graph");
+            }
         }
     }
   

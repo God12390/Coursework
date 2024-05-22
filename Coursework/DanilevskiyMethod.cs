@@ -5,14 +5,13 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
-using System.Numerics;
 using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 namespace Coursework
 {
     internal class DanilevskiyMethod
     {
-        private readonly Matrix matrix;
+        public Matrix matrix;
 
         public DanilevskiyMethod(Matrix matrix)
         {
@@ -29,6 +28,7 @@ namespace Coursework
                 for (int j = 0; j < invertedMatrix.ColumnCount; j++)
                 {
                     row.Add(invertedMatrix[i, j]);
+                    matrix.iterations++;
                 }
                 invertedMatrixList.Add(row);
             }
@@ -37,13 +37,14 @@ namespace Coursework
 
         public List<List<double>> GetB(List<List<double>> matrixA, int row)
         {
-            List<List<double>> B = matrix.getUnitMatrix();
+            List<List<double>> B = matrix.GetUnitMatrix();
             for (int x = 0; x < matrixA.Count; x++)
             {
                 if (row - 1 != x)
                     B[row - 1][x] = -matrixA[row][x] / matrixA[row][row - 1];
                 else
                     B[row - 1][row - 1] = 1 / matrixA[row][row - 1];
+                matrix.iterations++;
             }
             return B;
         }
@@ -54,10 +55,11 @@ namespace Coursework
             List<Matrix> arrayB = new List<Matrix>();
             for (int i = A.matrix.Count - 1; i > 0; i--)
             {
+                matrix.iterations++;
                 Matrix B = new Matrix(GetB(A.matrix, i));
                 arrayB.Add(B);
                 Matrix BReverse = new Matrix(FindInverseMatrix(B.matrix));
-                A = (BReverse.matrixMultiplication(A.matrix)).matrixMultiplication(B.matrix);
+                A = (BReverse.MatrixMultiplication(A.matrix)).MatrixMultiplication(B.matrix);
             }
             return (A, arrayB);
         }
@@ -69,6 +71,7 @@ namespace Coursework
             coefficients[0] = 1;
             for (int i = 0; i < polynomialCoefficients.Count; i++)
             {
+                matrix.iterations++;
                 coefficients[i + 1] = -polynomialCoefficients[i];
             }
             Array.Reverse(coefficients);
@@ -78,10 +81,15 @@ namespace Coursework
             List<double> eigenValues = new List<double>();
             foreach (var root in roots)
             {
+                matrix.iterations++;
                 if (root.Imaginary == 0)
                 {
                     eigenValues.Add(root.Real);
                 }
+            }
+            if(eigenValues.Count == 0)
+            {
+                throw new Exception("There are no real solution");
             }
             Array.Reverse(coefficients);
             return (eigenValues, arrayB, coefficients);
@@ -91,11 +99,11 @@ namespace Coursework
             Matrix similarityMatrix = similarityMatrices[0];
             for (int i = 1; i < similarityMatrices.Count; i++)
             {
-                similarityMatrix = similarityMatrix.matrixMultiplication(similarityMatrices[i].matrix);
+                similarityMatrix = similarityMatrix.MatrixMultiplication(similarityMatrices[i].matrix);
             }
-            Matrix ownVectors = new Matrix(Enumerable.Range(0, ownValues.Count).Select(k => ownValues.Select(val => Math.Pow(val, ownValues.Count - k - 1)).ToList()).ToList());
+            Matrix ownVectors = new Matrix(Enumerable.Range(0, matrix.matrix.Count).Select(k => ownValues.Select(val => Math.Pow(val, matrix.matrix.Count - k - 1)).ToList()).ToList());
+            List<List<double>> transposedVectors = ownVectors.GetTransposedMatrix();
 
-            List<List<double>> transposedVectors = ownVectors.getTransposedMatrix();
             for (int i = 0; i < transposedVectors.Count; i++)
             {
                 transposedVectors[i] = similarityMatrix.MatrixMultiplication(transposedVectors[i]);

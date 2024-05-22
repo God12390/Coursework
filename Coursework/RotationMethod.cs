@@ -8,23 +8,22 @@ namespace Coursework
 {
     internal class RotationMethod
     {
-        private Matrix matrix { get; set; }
-
+        public Matrix matrix { get; set; }
         public RotationMethod(Matrix matrix)
         {
             this.matrix = matrix;
         }
-        public double getRotationAngle(List<List<double>> matrix, int i, int j)
+        public double GetRotationAngle(List<List<double>> matrix, int i, int j)
         {
-            if (matrix[i][i] == matrix[j][j])
+            if (matrix[i][i] - matrix[j][j] == 0)
             {
                 return Math.PI / 4.0;
             }
             return 0.5 * Math.Atan(2 * matrix[i][j] / (matrix[i][i] - matrix[j][j]));
         }
-        public List<List<double>> calculateRotationMatrix(int size, int i, int j, double angle)
+        public List<List<double>> GetRotationMatrix(int size, int i, int j, double angle)
         {
-            List<List<double>> unitMatrix = matrix.getUnitMatrix();
+            List<List<double>> unitMatrix = matrix.GetUnitMatrix();
             unitMatrix[i][i] = Math.Cos(angle);
             unitMatrix[i][j] = -Math.Sin(angle);
             unitMatrix[j][i] = Math.Sin(angle);
@@ -32,7 +31,7 @@ namespace Coursework
             return unitMatrix;
         }
 
-        public (double, int, int) getLargestNonDiagonalElement(List<List<double>> matrix)
+        public (int, int) GetLargestNonDiagonalElement(List<List<double>> matrix)
         {
             double maxAbs = Math.Abs(matrix[0][1]);
             int rowIndex = 0, columnIndex = 1;
@@ -40,6 +39,7 @@ namespace Coursework
             {
                 for (int j = 0; j < matrix[0].Count; j++)
                 {
+                    this.matrix.iterations += 1;
                     if (i != j && Math.Abs(matrix[i][j]) > maxAbs)
                     {
                         maxAbs = Math.Abs(matrix[i][j]);
@@ -48,9 +48,9 @@ namespace Coursework
                     }
                 }
             }
-            return (maxAbs, rowIndex, columnIndex);
+            return (rowIndex, columnIndex);
         }
-        public double sumOfSquaresOfNotDiagonalElements(List<List<double>> matrix)
+        public double SumOfSquaresOfNotDiagonalElements(List<List<double>> matrix)
         {
             double sum = 0;
             for (int i = 0; i < matrix[0].Count; i++)
@@ -65,61 +65,70 @@ namespace Coursework
             }
             return sum;
         }
-        public (List<double>, List<Matrix>) findEigenvalues(double epsilon)
+        public (List<double>, List<Matrix>) GetEigenvalues(double epsilon)
         {
-            matrix.isSymmetrical();
+            if(!matrix.IsSymmetrical())
+            {
+                throw new ArgumentException("Matrix should be symmetrical");
+            }
+            if(matrix.IsIdentity())
+            {
+                throw new ArgumentException("Matrix cannot be identity");
+            }
             List<Matrix> rotationMatrices = new List<Matrix>();
             Matrix currentMatrix = new Matrix(matrix.matrix);
-            double sumOfSquares = sumOfSquaresOfNotDiagonalElements(currentMatrix.matrix);
+            double sumOfSquares = SumOfSquaresOfNotDiagonalElements(currentMatrix.matrix);
             while (sumOfSquares > epsilon)
             {
-                (double maxValue, int i, int j) = getLargestNonDiagonalElement(currentMatrix.matrix);
-                double angle = getRotationAngle(currentMatrix.matrix, i, j);
-                Matrix rotationMatrix = new Matrix(calculateRotationMatrix(currentMatrix.matrix[0].Count, i, j, angle));
+                (int i, int j) = GetLargestNonDiagonalElement(currentMatrix.matrix);
+                double angle = GetRotationAngle(currentMatrix.matrix, i, j);
+                Matrix rotationMatrix = new Matrix(GetRotationMatrix(currentMatrix.matrix[0].Count, i, j, angle));
                 rotationMatrices.Add(rotationMatrix);
-                Matrix transposedMatrix = new Matrix(rotationMatrix.getTransposedMatrix());
-                currentMatrix = transposedMatrix.matrixMultiplication(currentMatrix.matrix).matrixMultiplication(rotationMatrix.matrix);
-                sumOfSquares = sumOfSquaresOfNotDiagonalElements(currentMatrix.matrix);
+                Matrix transposedMatrix = new Matrix(rotationMatrix.GetTransposedMatrix());
+                currentMatrix = transposedMatrix.MatrixMultiplication(currentMatrix.matrix).MatrixMultiplication(rotationMatrix.matrix);
+                sumOfSquares = SumOfSquaresOfNotDiagonalElements(currentMatrix.matrix);
             }
-            List<double> eigenvalues = extractEigenvalues(currentMatrix.matrix, epsilon);
+            List<double> eigenvalues = ExtractEigenvalues(currentMatrix.matrix, epsilon);
             return (eigenvalues, rotationMatrices);
         }
 
-        private List<double> extractEigenvalues(List<List<double>> matrix, double epsilon)
+        private List<double> ExtractEigenvalues(List<List<double>> matrix, double epsilon)
         {
             List<double> eigenvalues = new List<double>();
             int decimalPlaces = (epsilon < 1) ? (int)Math.Ceiling(-Math.Log10(epsilon)) : 2;
             for (int i = 0; i < matrix.Count; i++)
             {
+                this.matrix.iterations++;
                 eigenvalues.Add(Math.Round(matrix[i][i], decimalPlaces));
             }
             return eigenvalues;
         }
-        private List<List<double>> extractEigenVectors(List<List<double>> matrix, double epsilon)
+        private List<List<double>> ExtractEigenVectors(List<List<double>> matrix, double epsilon)
         {
             int decimalPlaces = (epsilon < 1) ? (int)Math.Ceiling(-Math.Log10(epsilon)) : 2;
             for (int i = 0; i < matrix.Count; i++)
             {
                 for (int j = 0; j < matrix.Count; j++)
                 {
+                    this.matrix.iterations++;
                     matrix[i][j] = Math.Round(matrix[i][j], decimalPlaces);
                 }
             }
             return matrix;
         }
 
-        public List<List<double>> findEigenVectors(List<Matrix> rotationMatrixes, double epsilon)
+        public List<List<double>> GetEigenVectors(List<Matrix> rotationMatrixes, double epsilon)
         {
             Matrix resultMatrix = rotationMatrixes[0];
 
             foreach (Matrix matrix in rotationMatrixes.Skip(1))
             {
-                resultMatrix = resultMatrix.matrixMultiplication(matrix.matrix);
+                this.matrix.iterations++;
+                resultMatrix = resultMatrix.MatrixMultiplication(matrix.matrix);
             }
-            int digitsAfterComma = (epsilon < 1) ? (int)Math.Ceiling(-Math.Log10(epsilon)) : 2;
             Matrix eigenVectors = new Matrix(matrix.getEmptyMatrix());
-            eigenVectors.matrix = extractEigenVectors(resultMatrix.matrix, epsilon);
-            eigenVectors.matrix = eigenVectors.getTransposedMatrix();
+            eigenVectors.matrix = ExtractEigenVectors(resultMatrix.matrix, epsilon);
+            eigenVectors.matrix = eigenVectors.GetTransposedMatrix();
             return eigenVectors.matrix;
         }
     }

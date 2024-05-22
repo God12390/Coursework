@@ -1,26 +1,31 @@
 ﻿using Coursework;
 using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
+public enum Method
+{
+    Danilevskiy,
+    Rotation
+}
 namespace Coursework
 {
     public partial class MainWindow : Window
     {
         private MatrixController matrixController;
         private GraphController graphController;
-        private FileController fileController;
+        private FileController fileController = new FileController();
         private List<EigenPair> eigenPairs;
-
         public MainWindow()
         {
             InitializeComponent();
-            fileController = new FileController();
         }
 
-        private void MatrixSizeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void matrixSizeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             ComboBox comboBox = sender as ComboBox;
             if (comboBox.SelectedItem is ComboBoxItem selectedItem)
@@ -28,7 +33,7 @@ namespace Coursework
                 if (int.TryParse(selectedItem.Content.ToString(), out int size))
                 {
                     matrixController = new MatrixController(size);
-                    matrixController.GenerateMatrixTextBoxes(MatrixGrid);
+                    matrixController.generateMatrixTextBoxes(MatrixGrid);
                 }
                 else
                 {
@@ -37,87 +42,95 @@ namespace Coursework
             }
         }
 
-        private void ExitButton(object sender, RoutedEventArgs e)
+        private void exitButton(object sender, RoutedEventArgs e)
         {
             Close();
         }
 
-        private void CalculateButton(object sender, RoutedEventArgs e)
+        private void calculateButton(object sender, RoutedEventArgs e)
         {
-            if (matrixController == null || !matrixController.ValidateMatrixData(MatrixGrid))
+            Method method = SelectedMethod.SelectedIndex == 0 ? Method.Danilevskiy : Method.Rotation;
+            if (matrixController == null || !matrixController.validateMatrixData(MatrixGrid))
             {
                 MessageBox.Show("Please enter valid decimal values in all matrix cells.");
                 return;
             }
-
-            int method = SelectedMethod.SelectedIndex;
-            if (method == 0)
+            if (SelectedMethod.SelectedIndex == -1)
             {
                 MessageBox.Show("You should select the method");
                 return;
             }
-
-            var matrix = matrixController.GetMatrix();
-            var eigenValues = new List<double>();
-            var eigenVectors = new List<List<double>>();
-
-            if (method == 1)
+            try
             {
-                var danilevskiyMethod = new DanilevskiyMethod(matrix);
-                (eigenValues, var similarityMatrices, var polynomialCoefficients) = danilevskiyMethod.GetEigenValues();
-                graphController = new GraphController(polynomialCoefficients, eigenValues.Min(), eigenValues.Max());
-                eigenVectors = danilevskiyMethod.GetEigenVectors(eigenValues, similarityMatrices);
-            }
-            else if (method == 2)
-            {
-                var toleranceValue = (SelectedTolerance.SelectedItem as ComboBoxItem)?.Content.ToString();
-                if (double.TryParse(toleranceValue, out var tolerance))
+                switch (method)
                 {
-                    var rotationMethod = new RotationMethod(matrix);
-                    (eigenValues, var rotationMatrices) = rotationMethod.findEigenvalues(tolerance);
-                    eigenVectors = rotationMethod.findEigenVectors(rotationMatrices, tolerance);
+                    case Method.Danilevskiy:
+                        matrixController.CalculateDanilevskiy();
+                        graphController = new GraphController(matrixController.polynomialCoefficients, matrixController.eigenValues.Min(), 
+                                                              matrixController.eigenValues.Max(), matrixController.eigenValues.ToArray());
+                        break;
+                    case Method.Rotation:
+                        double tolerance = double.Parse((SelectedTolerance.SelectedItem as ComboBoxItem)?.Content.ToString());
+                        matrixController.CalculateRotation(tolerance);
+                        break;
+                    default:
+                        break;
                 }
+                eigenPairs = matrixController.eigenValues.Select((value, index) => new EigenPair {
+                    EigenValue = value,
+                    EigenVector = matrixController.eigenVectors[index].ToArray()
+                }).ToList();
+
+                EigenDataGrid.ItemsSource = eigenPairs;
             }
-
-            eigenPairs = eigenValues.Select((value, index) => new EigenPair
+            catch (Exception ex)
             {
-                EigenValue = value,
-                EigenVector = eigenVectors[index].ToArray()
-            }).ToList();
-
-            EigenDataGrid.ItemsSource = eigenPairs;
-            ButtonSaveIntoFile.Visibility = eigenPairs.Any() ? Visibility.Visible : Visibility.Collapsed;
+                MessageBox.Show(ex.Message);
+            }
         }
 
-        private void ButtonClear(object sender, RoutedEventArgs e)
+        private void buttonClear(object sender, RoutedEventArgs e)
         {
-            matrixController?.ClearMatrixData(MatrixGrid);
+            matrixController.matrix = new Matrix(matrixController.matrix.matrix.Count);
+            matrixController?.clearMatrixData(MatrixGrid);
             plotView.Visibility = Visibility.Collapsed;
             EigenDataGrid.ItemsSource = null;
         }
 
-        private void ButtonSave(object sender, RoutedEventArgs e)
+        private void buttonSave(object sender, RoutedEventArgs e)
         {
             var selectedFilePath = SelectedFile.Text;
-            fileController.SaveEigenPairsToFile(selectedFilePath, eigenPairs);
+            fileController.saveToFile(selectedFilePath, eigenPairs, matrixController.matrix.matrix);
         }
-
-        private void ButtonSelectFile(object sender, RoutedEventArgs e)
+        private void GenerateMatrixButton(object sender, RoutedEventArgs e)
         {
-            var saveFileDialog = new SaveFileDialog
-            {
-                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
-            };
+            matrixController.generateRandomMatrix(MatrixGrid);
+        }
+        private void ButtonShowComplexity(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show($"Number of iterations: {matrixController.iterations}");
+        }
+        private void buttonSelectFile(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog { Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*" };
             if (saveFileDialog.ShowDialog() == true)
             {
                 SelectedFile.Text = saveFileDialog.FileName;
             }
         }
 
-        private void BuildGraphButton(object sender, RoutedEventArgs e)
+        private void buildGraphButton(object sender, RoutedEventArgs e)
         {
             plotView.Visibility = Visibility.Visible;
-            plotView.Model = graphController?.BuildGraph();
+            try
+            {
+            plotView.Model = graphController?.buildGraph();
+                
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
     }
 }
