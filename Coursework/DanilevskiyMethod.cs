@@ -12,7 +12,11 @@ namespace Coursework
     internal class DanilevskiyMethod
     {
         private Matrix _matrix;
+
+
         public Matrix Matrix { get => _matrix; set => _matrix = value; }
+
+
         public DanilevskiyMethod(Matrix matrix)
         {
             Matrix = matrix;
@@ -34,7 +38,6 @@ namespace Coursework
             }
             return invertedMatrixList;
         }
-
         private List<List<double>> GetB(List<List<double>> matrixA, int row)
         {
             List<List<double>> B = Matrix.GetUnitMatrix();
@@ -48,7 +51,6 @@ namespace Coursework
             }
             return B;
         }
-
         public (Matrix, List<Matrix>) GetNormalForm()
         {
             Matrix A = new Matrix(Matrix.MatrixData);
@@ -110,7 +112,6 @@ namespace Coursework
             Array.Reverse(coefficients);
             return (eigenValues, arrayB, coefficients);
         }
-
         public List<List<double>> GetEigenVectors(List<double> ownValues, List<Matrix> similarityMatrices)
         {
             Matrix similarityMatrix = similarityMatrices[0];

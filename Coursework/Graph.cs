@@ -9,17 +9,17 @@ namespace Coursework
 {
     internal class Graph
     {
-        private double minX;
-        private double maxX;
-        private double[] roots;
-        private PlotModel plotModel;
-        private double[] polynomialCoefficients;
+        private double _minX;
+        private double _maxX;
+        private double[] _roots;
+        private PlotModel _plotModel;
+        private double[] _polynomialCoefficients;
         public Graph(double[] coefficients, double leftBoundary, double rightBoundary, double[] roots)
         {
-            minX = leftBoundary - 5;
-            maxX = rightBoundary + 5;
-            polynomialCoefficients = coefficients;
-            this.roots = roots;
+            _minX = leftBoundary - 5;
+            _maxX = rightBoundary + 5;
+            _polynomialCoefficients = coefficients;
+            this._roots = roots;
         }
 
         public PlotModel buildGraph()
@@ -29,11 +29,11 @@ namespace Coursework
             AddIntersectionPoints();
             AddAnnotations();
             AdjustAspectRatio();
-            return plotModel;
+            return _plotModel;
         }
         private void InitializePlotModel()
         {
-            plotModel = new PlotModel { Title = "Polynomial Graph" };
+            _plotModel = new PlotModel { Title = "Polynomial Graph" };
 
             var xAxis = new LinearAxis
             {
@@ -55,15 +55,15 @@ namespace Coursework
                 AxisTickToLabelDistance = 0,
             };
 
-            plotModel.Axes.Add(xAxis);
-            plotModel.Axes.Add(yAxis);
+            _plotModel.Axes.Add(xAxis);
+            _plotModel.Axes.Add(yAxis);
         }
         private void AddPolynomialSeries()
         {
             LineSeries series = new LineSeries { Color = OxyColors.Blue };
             int iterations = 0;
 
-            for (double x = minX; x <= maxX; x += 0.1)
+            for (double x = _minX; x <= _maxX; x += 0.1)
             {
                 iterations++;
                 if (iterations > 1e6)
@@ -76,14 +76,14 @@ namespace Coursework
                     series.Points.Add(new DataPoint(x, y));
                 }
             }
-            plotModel.Series.Add(series);
+            _plotModel.Series.Add(series);
         }
         private void AddIntersectionPoints()
         {
-            foreach (var root in roots)
+            foreach (var root in _roots)
             {
                 double y = GetPolynomialValue(root);
-                double epsilon = Math.Pow(10,  -polynomialCoefficients.Length);
+                double epsilon = Math.Pow(10,  -_polynomialCoefficients.Length);
                 double yLeft = GetPolynomialValue(root - epsilon);
                 double yRight = GetPolynomialValue(root + epsilon);
                 ScatterSeries intersectionPoint = new ScatterSeries
@@ -92,7 +92,7 @@ namespace Coursework
                     MarkerFill = OxyColors.Red,
                     MarkerSize = 3
                 };
-                intersectionPoint.Points.Add(new ScatterPoint(root, y));
+                intersectionPoint.Points.Add(new ScatterPoint(root, 0));
                 LineSeries intersectionLine = new LineSeries
                 {
                     Color = OxyColors.Blue,
@@ -101,32 +101,32 @@ namespace Coursework
                 intersectionLine.Points.Add(new DataPoint(root - epsilon, yLeft));
                 intersectionLine.Points.Add(new DataPoint(root, 0));
                 intersectionLine.Points.Add(new DataPoint(root + epsilon, yRight));
-                plotModel.Series.Add(intersectionPoint);
-                plotModel.Series.Add(intersectionLine);
+                _plotModel.Series.Add(intersectionPoint);
+                _plotModel.Series.Add(intersectionLine);
             }
         }
         private double GetPolynomialValue(double x)
         {
             double y = 0;
-            for (int i = 0; i < polynomialCoefficients.Length; i++)
+            for (int i = 0; i < _polynomialCoefficients.Length; i++)
             {
-                y += polynomialCoefficients[i] * Math.Pow(x, polynomialCoefficients.Length - 1 - i);
+                y += _polynomialCoefficients[i] * Math.Pow(x, _polynomialCoefficients.Length - 1 - i);
             }
             return y;
         }
         private void AdjustAspectRatio()
         {
-            var xAxis = plotModel.Axes[0];
-            var yAxis = plotModel.Axes[1];
+            var xAxis = _plotModel.Axes[0];
+            var yAxis = _plotModel.Axes[1];
             double yMin = double.MaxValue;
             double yMax = double.MinValue;
-            for (double x = minX; x <= maxX; x += 0.01)
+            for (double x = _minX; x <= _maxX; x += 0.01)
             {
                 double y = GetPolynomialValue(x);
                 if (y < yMin) yMin = y;
                 if (y > yMax) yMax = y;
             }
-            double xRange = maxX - minX;
+            double xRange = _maxX - _minX;
             double yRange = yMax - yMin;
             if (xRange > yRange)
             {
@@ -136,7 +136,7 @@ namespace Coursework
             }
             else
             {
-                double xMid = (maxX + minX) / 2;
+                double xMid = (_maxX + _minX) / 2;
                 double newXRange = yRange;
                 xAxis.Zoom(xMid - newXRange / 2, xMid + newXRange / 2);
             }
@@ -163,8 +163,8 @@ namespace Coursework
                 LineStyle = LineStyle.Solid
             };
 
-            plotModel.Annotations.Add(verticalLine);
-            plotModel.Annotations.Add(horizontalLine);
+            _plotModel.Annotations.Add(verticalLine);
+            _plotModel.Annotations.Add(horizontalLine);
         }
     }
 }
