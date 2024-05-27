@@ -14,12 +14,10 @@ namespace Coursework
         private double[] roots;
         private PlotModel plotModel;
         private double[] polynomialCoefficients;
-        private double buffer = 5; // Величина буфера
-
         public Graph(double[] coefficients, double leftBoundary, double rightBoundary, double[] roots)
         {
-            minX = leftBoundary - buffer;
-            maxX = rightBoundary + buffer;
+            minX = leftBoundary - 5;
+            maxX = rightBoundary + 5;
             polynomialCoefficients = coefficients;
             this.roots = roots;
         }
@@ -33,7 +31,6 @@ namespace Coursework
             AdjustAspectRatio();
             return plotModel;
         }
-
         private void InitializePlotModel()
         {
             plotModel = new PlotModel { Title = "Polynomial Graph" };
@@ -61,7 +58,6 @@ namespace Coursework
             plotModel.Axes.Add(xAxis);
             plotModel.Axes.Add(yAxis);
         }
-
         private void AddPolynomialSeries()
         {
             LineSeries series = new LineSeries { Color = OxyColors.Blue };
@@ -74,7 +70,7 @@ namespace Coursework
                 {
                     throw new Exception("Graph is too complex to build");
                 }
-                double y = GetPolyValue(x);
+                double y = GetPolynomialValue(x);
                 if (!double.IsNaN(y) && Math.Abs(y) < 1e5)
                 {
                     series.Points.Add(new DataPoint(x, y));
@@ -82,20 +78,19 @@ namespace Coursework
             }
             plotModel.Series.Add(series);
         }
-
         private void AddIntersectionPoints()
         {
             foreach (var root in roots)
             {
-                double y = GetPolyValue(root);
-                double epsilon = Math.Pow(10, 1 - polynomialCoefficients.Length);
-                double yLeft = GetPolyValue(root - epsilon);
-                double yRight = GetPolyValue(root + epsilon);
+                double y = GetPolynomialValue(root);
+                double epsilon = Math.Pow(10,  -polynomialCoefficients.Length);
+                double yLeft = GetPolynomialValue(root - epsilon);
+                double yRight = GetPolynomialValue(root + epsilon);
                 ScatterSeries intersectionPoint = new ScatterSeries
                 {
                     MarkerType = MarkerType.Circle,
                     MarkerFill = OxyColors.Red,
-                    MarkerSize = 4
+                    MarkerSize = 3
                 };
                 intersectionPoint.Points.Add(new ScatterPoint(root, y));
                 LineSeries intersectionLine = new LineSeries
@@ -103,8 +98,6 @@ namespace Coursework
                     Color = OxyColors.Blue,
                     StrokeThickness = 1
                 };
-
-                // Додаємо точки і лінію для околу кореня
                 intersectionLine.Points.Add(new DataPoint(root - epsilon, yLeft));
                 intersectionLine.Points.Add(new DataPoint(root, 0));
                 intersectionLine.Points.Add(new DataPoint(root + epsilon, yRight));
@@ -112,8 +105,7 @@ namespace Coursework
                 plotModel.Series.Add(intersectionLine);
             }
         }
-
-        private double GetPolyValue(double x)
+        private double GetPolynomialValue(double x)
         {
             double y = 0;
             for (int i = 0; i < polynomialCoefficients.Length; i++)
@@ -122,27 +114,20 @@ namespace Coursework
             }
             return y;
         }
-
         private void AdjustAspectRatio()
         {
             var xAxis = plotModel.Axes[0];
             var yAxis = plotModel.Axes[1];
-
-            // Calculate the range of y values over the range of x values
             double yMin = double.MaxValue;
             double yMax = double.MinValue;
             for (double x = minX; x <= maxX; x += 0.01)
             {
-                double y = GetPolyValue(x);
+                double y = GetPolynomialValue(x);
                 if (y < yMin) yMin = y;
                 if (y > yMax) yMax = y;
             }
-
-            // Calculate the range of x and y
             double xRange = maxX - minX;
             double yRange = yMax - yMin;
-
-            // Set the axis limits to maintain a 1:1 aspect ratio
             if (xRange > yRange)
             {
                 double yMid = (yMax + yMin) / 2;
@@ -156,7 +141,6 @@ namespace Coursework
                 xAxis.Zoom(xMid - newXRange / 2, xMid + newXRange / 2);
             }
         }
-
         private void AddAnnotations()
         {
             var verticalLine = new LineAnnotation

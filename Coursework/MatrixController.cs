@@ -2,38 +2,49 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-
+using System.Diagnostics;
 namespace Coursework
 {
     internal class MatrixController
     {
-        public Matrix matrix { get; set; }
-        public int iterations;
-        public List<double> eigenValues;
-        public List<List<double>> eigenVectors;
-        public double[] polynomialCoefficients;
+        private Matrix matrix;
+        private int iterations;
+        private List<double> eigenValues;
+        private List<List<double>> eigenVectors;
+        private double[] polynomialCoefficients;
+        private long calculationTime;
+
+
+        public Matrix Matrix { get => matrix; set=> matrix = value; }
+        public int Iterations { get => iterations; set => iterations = value; }
+        public List<double> EigenValues { get => eigenValues; set => eigenValues = value; }
+        public List<List<double>> EigenVectors { get => eigenVectors; set => eigenVectors = value; }
+        public double[] PolynomialCoefficients { get => polynomialCoefficients; set => polynomialCoefficients = value; }
+        public long CalculationTime { get => calculationTime; set => calculationTime = value; }
+
+
         public MatrixController(int size)
         {
             matrix = new Matrix(size);
         }
-        public void ResetIterations() => matrix.iterations = 0;
+        public void ResetIterations() => matrix.Iterations = 0;
         public void generateMatrixTextBoxes(Grid matrixGrid)
         {
             matrixGrid.Children.Clear();
             matrixGrid.RowDefinitions.Clear();
             matrixGrid.ColumnDefinitions.Clear();
 
-            for (int i = 0; i < matrix.matrix[0].Count; i++)
+            for (int i = 0; i < matrix.MatrixData[0].Count; i++)
             {
                 matrixGrid.ColumnDefinitions.Add(new ColumnDefinition() { Width = GridLength.Auto });
                 matrixGrid.ColumnDefinitions.Add(new ColumnDefinition());
             }
 
-            for (int i = 0; i < matrix.matrix[0].Count; i++)
+            for (int i = 0; i < matrix.MatrixData[0].Count; i++)
             {
                 matrixGrid.RowDefinitions.Add(new RowDefinition());
 
-                for (int j = 0; j < matrix.matrix[0].Count; j++)
+                for (int j = 0; j < matrix.MatrixData[0].Count; j++)
                 {
                     Label label = new Label();
                     label.Content = $"A{i + 1}{j + 1}";
@@ -64,6 +75,8 @@ namespace Coursework
         }
         public void  CalculateDanilevskiy()
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             try
             {
                 ResetIterations();
@@ -71,47 +84,47 @@ namespace Coursework
                 (eigenValues, List<Matrix> similarityMatrices, double[] polyCoeffs) = danilevskiyMethod.GetEigenValues();
                 polynomialCoefficients = polyCoeffs;
                 eigenVectors = danilevskiyMethod.GetEigenVectors(eigenValues, similarityMatrices);
-                iterations = danilevskiyMethod.matrix.iterations;
+                iterations = danilevskiyMethod.Matrix.Iterations;
             }
             catch (Exception ex)
             {
                 throw new Exception($"Error in Danilevskiy method calculation: {ex.Message}");
             }
+            stopwatch.Stop();
+            calculationTime = stopwatch.ElapsedMilliseconds;
         }
-
         public void CalculateRotation(double tolerance)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             try
             {
                 ResetIterations();
                 RotationMethod rotationMethod = new RotationMethod(matrix);
                 (eigenValues, List<Matrix> rotationMatrices) = rotationMethod.GetEigenvalues(tolerance);
                 eigenVectors = rotationMethod.GetEigenVectors(rotationMatrices, tolerance);
-                iterations = rotationMethod.matrix.iterations;
+                iterations = rotationMethod.Matrix.Iterations;
             }
             catch (Exception ex)
             {
                 throw new Exception($"Error in Rotation method calculation: {ex.Message}");
             }
+            stopwatch.Stop();
+            calculationTime = stopwatch.ElapsedMilliseconds;
         }
         public void generateRandomMatrix(Grid matrixGrid)
         {
             Random random = new Random();
-            int rowCount = matrix.matrix.Count;
-            int columnCount = matrix.matrix[0].Count;
-
+            int rowCount = matrix.MatrixData.Count;
+            int columnCount = matrix.MatrixData[0].Count;
             for (int i = 0; i < rowCount; i++)
             {
                 for (int j = 0; j < columnCount; j++)
                 {
-                    double value = -100 + (random.NextDouble() * 200);
-                    matrix.matrix[i][j] = value;
-
+                    double value =  (random.NextDouble() * 10000);
+                    matrix.MatrixData[i][j] = value;
                     TextBox textBox = matrixGrid.Children.OfType<TextBox>().FirstOrDefault(tb => Grid.GetRow(tb) == i && Grid.GetColumn(tb) == j * 2 + 1);
-                    if (textBox != null)
-                    {
-                        textBox.Text = $"{value:F2}";
-                    }
+                    textBox.Text = $"{value:F2}";
                 }
             }
         }
@@ -131,29 +144,30 @@ namespace Coursework
             }
             return true;
         }
-
         private bool IsValidDouble(string input)
         {
+            double min = -10000, max = 10000;
+            int decimalPart = 5;
             if (double.TryParse(input, out double value))
             {
                 if (double.IsInfinity(value))
                 {
-                    MessageBox.Show("Value should be in range[-10000000, 10000000]");
+                    MessageBox.Show($"Value should be in range[{min}, {max}]");
                     return false;
                 }
                 string[] parts = input.Split('.');
-                if (parts.Length > 1 && parts[1].Length > 5)
+                if (parts.Length > 1 && parts[1].Length > decimalPart)
                 {
-                    MessageBox.Show("Max decimal part is 10 symbols");
+                    MessageBox.Show($"Max decimal part is {decimalPart} symbols");
                     return false;
                 }
-                if (value >= -10000000 && value <= 10000000)
+                if (value >= min && value <= max)
                 {
                     return true;
                 }
                 else
                 {
-                    MessageBox.Show("Values should be in range[-10000000, 10000000]");
+                    MessageBox.Show($"Value should be in range[{min}, {max}]");
                     return false;
                 }
             }
@@ -163,7 +177,6 @@ namespace Coursework
                 return false;
             }
         }
-
         private void trackTextBoxChanges(TextBox textBox, int rowIndex, int columnIndex)
         {
             textBox.LostFocus += (sender, e) =>
@@ -171,7 +184,7 @@ namespace Coursework
                 string input = textBox.Text;
                 if (!input.Contains(" ") && IsValidDouble(input))
                 {
-                    matrix.matrix[rowIndex][columnIndex] = double.Parse(input);
+                    matrix.MatrixData[rowIndex][columnIndex] = double.Parse(input);
                     textBox.BorderBrush = SystemColors.ControlDarkBrush;
                 }
                 else
@@ -180,12 +193,10 @@ namespace Coursework
                 }
             };
         }
-
         public Matrix getMatrix()
         {
             return matrix;
         }
-
         public void clearMatrixData(Grid matrixGrid)
         {
             foreach (UIElement element in matrixGrid.Children)

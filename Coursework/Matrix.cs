@@ -8,30 +8,30 @@ namespace Coursework
 {
     internal class Matrix
     {
-        public List<List<double>> matrix;
-        public int iterations=0;
+        private List<List<double>> _matrix;
+        private int _iterations;
+
+
+        public int Iterations { get => _iterations; set => _iterations = value; }
+        public List<List<double>> MatrixData { get => _matrix; set => _matrix = value; }
+
+
         public Matrix(List<List<double>> matrix)
         {
-            this.matrix = matrix;
+            MatrixData = matrix;
         }
         public Matrix(int size)
         {
-            this.matrix = GetEmptyMatrix(size, size);
+            MatrixData = GetEmptyMatrix(size);
         }
-        public List<List<double>> getEmptyMatrix()
+        public static List<List<double>> GetEmptyMatrix(int size)
         {
-            List<List<double>> emptyMatrix = new List<List<double>>();
-            for (int i = 0; i < matrix[0].Count; i++)
+            List<List<double>> matrix = new List<List<double>>(size);
+            for (int i = 0; i < size; i++)
             {
-                List<double> row = new List<double>();
-                for (int j = 0; j < matrix[0].Count; j++)
-                {
-                    row.Add(0);
-                    iterations++;
-                }
-                emptyMatrix.Add(row);
+                matrix.Add(new List<double>(new double[size]));
             }
-            return emptyMatrix;
+            return matrix;
         }
         public List<List<double>> GetEmptyMatrix(int rows, int cols)
         {
@@ -42,7 +42,7 @@ namespace Coursework
                 for (int j = 0; j < cols; j++)
                 {
                     row.Add(0);
-                    iterations++;
+                    Iterations++;
                 }
                 emptyMatrix.Add(row);
             }
@@ -50,22 +50,22 @@ namespace Coursework
         }
         public List<List<double>> GetUnitMatrix()
         {
-            List<List<double>> unitMatrix = getEmptyMatrix();
-            for (int i = 0; i < matrix[0].Count; i++)
+            List<List<double>> unitMatrix = GetEmptyMatrix(MatrixData.Count);
+            for (int i = 0; i < MatrixData[0].Count; i++)
             {
                 unitMatrix[i][i] = 1;
-                iterations++;
+                Iterations++;
             }
             return unitMatrix;
         }
         public bool IsSymmetrical()
         {
-            for (int i = 0; i < matrix[0].Count; i++)
+            for (int i = 0; i < MatrixData[0].Count; i++)
             {
-                for (int j = 0; j < matrix[0].Count; j++)
+                for (int j = 0; j < MatrixData[0].Count; j++)
                 {
-                    iterations++;
-                    if (matrix[i][j] != matrix[j][i])
+                    Iterations++;
+                    if (MatrixData[i][j] != MatrixData[j][i])
                     {
                         return false;
                     }
@@ -76,62 +76,67 @@ namespace Coursework
         public bool IsIdentity()
         {
             int num = 0;
-            for (int i = 0; i < matrix[0].Count; i++)
+            for (int i = 0; i < MatrixData[0].Count; i++)
             {
-                for (int j = 0; j < matrix[0].Count; j++)
+                for (int j = 0; j < MatrixData[0].Count; j++)
                 {
-                    iterations++;
-                    if (i != j && matrix[i][j] == 0)
+                    Iterations++;
+                    if (i != j && MatrixData[i][j] == 0)
                     {
                         num++;
                     }
                 }
             }
-            return num == matrix[0].Count * matrix[0].Count - matrix[0].Count;
+            return num == MatrixData[0].Count * MatrixData[0].Count - MatrixData[0].Count;
         }
         public List<List<double>> GetTransposedMatrix()
         {
-            List<List<double>> transposedMatrix = GetEmptyMatrix(matrix[0].Count, matrix.Count);
-            for (int i = 0; i < matrix.Count; i++)
+            List<List<double>> transposedMatrix = GetEmptyMatrix(MatrixData[0].Count, MatrixData.Count);
+            for (int i = 0; i < MatrixData.Count; i++)
             {
-                for (int j = 0; j < matrix[i].Count; j++)
+                for (int j = 0; j < MatrixData[i].Count; j++)
                 {
-                    iterations++;
-                    transposedMatrix[j][i] = matrix[i][j];
+                    Iterations++;
+                    transposedMatrix[j][i] = MatrixData[i][j];
                 }
             }
             return transposedMatrix;
         }
-        public Matrix MatrixMultiplication(List<List<double>> matrixA)
+
+        public static Matrix operator *(Matrix matrixA, Matrix matrixB)
         {
-            int size = matrixA[0].Count;
-            List<List<double>> resultMatrix = getEmptyMatrix();
+            int size = matrixA.MatrixData.Count;
+            List<List<double>> resultMatrix = GetEmptyMatrix(size);
+
             for (int i = 0; i < size; i++)
             {
                 for (int j = 0; j < size; j++)
                 {
                     for (int k = 0; k < size; k++)
                     {
-                        resultMatrix[i][j] += matrix[i][k] * matrixA[k][j];
-                        iterations++;
+                        resultMatrix[i][j] += matrixA.MatrixData[i][k] * matrixB.MatrixData[k][j];
+                        matrixA.Iterations++;
                     }
                 }
             }
             return new Matrix(resultMatrix);
         }
-        public List<double> MatrixMultiplication(List<double> matrixA)
+        public static List<double> operator *(Matrix matrix, List<double> vector)
         {
-            List<double> resultVector = new List<double>(matrix.Count);
-            for (int i = 0; i < matrix.Count; i++)
+            int size = matrix.MatrixData.Count;
+            List<double> resultVector = new List<double>(new double[size]);
+
+            for (int i = 0; i < size; i++)
             {
                 double sum = 0;
-                for (int j = 0; j < matrix[0].Count; j++)
+                for (int j = 0; j < matrix.MatrixData[0].Count; j++)
                 {
-                    sum += matrix[i][j] * matrixA[j];
-                    iterations++;
+                    sum += matrix.MatrixData[i][j] * vector[j];
+                    matrix.Iterations++;
                 }
-                resultVector.Add(sum);
+                resultVector[i] = sum;
             }
+
             return resultVector;
         }
     }

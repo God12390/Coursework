@@ -8,16 +8,18 @@ using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 namespace MyApp
 {
+
     internal class Matrix
     {
         public List<List<double>> matrix;
+        public int iterations = 0;
         public Matrix(List<List<double>> matrix)
         {
             this.matrix = matrix;
         }
         public Matrix(int size)
         {
-            this.matrix = getEmptyMatrix(size, size);
+            this.matrix = GetEmptyMatrix(size, size);
         }
         public List<List<double>> getEmptyMatrix()
         {
@@ -28,12 +30,13 @@ namespace MyApp
                 for (int j = 0; j < matrix[0].Count; j++)
                 {
                     row.Add(0);
+                    iterations++;
                 }
                 emptyMatrix.Add(row);
             }
             return emptyMatrix;
         }
-        public List<List<double>> getEmptyMatrix(int rows, int cols)
+        public List<List<double>> GetEmptyMatrix(int rows, int cols)
         {
             List<List<double>> emptyMatrix = new List<List<double>>();
             for (int i = 0; i < rows; i++)
@@ -42,47 +45,67 @@ namespace MyApp
                 for (int j = 0; j < cols; j++)
                 {
                     row.Add(0);
+                    iterations++;
                 }
                 emptyMatrix.Add(row);
             }
             return emptyMatrix;
         }
-        public List<List<double>> getUnitMatrix()
+        public List<List<double>> GetUnitMatrix()
         {
             List<List<double>> unitMatrix = getEmptyMatrix();
             for (int i = 0; i < matrix[0].Count; i++)
             {
                 unitMatrix[i][i] = 1;
+                iterations++;
             }
             return unitMatrix;
         }
-        public bool isSymmetrical()
+        public bool IsSymmetrical()
         {
             for (int i = 0; i < matrix[0].Count; i++)
             {
                 for (int j = 0; j < matrix[0].Count; j++)
                 {
+                    iterations++;
                     if (matrix[i][j] != matrix[j][i])
                     {
-                        throw new ArgumentException();
+                        return false;
                     }
                 }
             }
             return true;
         }
-        public List<List<double>> getTransposedMatrix()
+        public bool IsIdentity()
         {
-            List<List<double>> transposedMatrix = getEmptyMatrix(matrix[0].Count, matrix.Count);
+            int num = 0;
+            for (int i = 0; i < matrix[0].Count; i++)
+            {
+                for (int j = 0; j < matrix[0].Count; j++)
+                {
+                    iterations++;
+                    if (i != j && matrix[i][j] == 0)
+                    {
+                        num++;
+                    }
+                }
+            }
+            return num == matrix[0].Count * matrix[0].Count - matrix[0].Count;
+        }
+        public List<List<double>> GetTransposedMatrix()
+        {
+            List<List<double>> transposedMatrix = GetEmptyMatrix(matrix[0].Count, matrix.Count);
             for (int i = 0; i < matrix.Count; i++)
             {
                 for (int j = 0; j < matrix[i].Count; j++)
                 {
+                    iterations++;
                     transposedMatrix[j][i] = matrix[i][j];
                 }
             }
             return transposedMatrix;
         }
-        public Matrix matrixMultiplication(List<List<double>> matrixA)
+        public Matrix MatrixMultiplication(List<List<double>> matrixA)
         {
             int size = matrixA[0].Count;
             List<List<double>> resultMatrix = getEmptyMatrix();
@@ -93,6 +116,7 @@ namespace MyApp
                     for (int k = 0; k < size; k++)
                     {
                         resultMatrix[i][j] += matrix[i][k] * matrixA[k][j];
+                        iterations++;
                     }
                 }
             }
@@ -107,6 +131,7 @@ namespace MyApp
                 for (int j = 0; j < matrix[0].Count; j++)
                 {
                     sum += matrix[i][j] * matrixA[j];
+                    iterations++;
                 }
                 resultVector.Add(sum);
             }
@@ -115,7 +140,7 @@ namespace MyApp
     }
     internal class DanilevskiyMethod
     {
-        private readonly Matrix matrix;
+        public Matrix matrix;
 
         public DanilevskiyMethod(Matrix matrix)
         {
@@ -132,6 +157,7 @@ namespace MyApp
                 for (int j = 0; j < invertedMatrix.ColumnCount; j++)
                 {
                     row.Add(invertedMatrix[i, j]);
+                    matrix.iterations++;
                 }
                 invertedMatrixList.Add(row);
             }
@@ -140,13 +166,14 @@ namespace MyApp
 
         public List<List<double>> GetB(List<List<double>> matrixA, int row)
         {
-            List<List<double>> B = matrix.getUnitMatrix();
+            List<List<double>> B = matrix.GetUnitMatrix();
             for (int x = 0; x < matrixA.Count; x++)
             {
                 if (row - 1 != x)
                     B[row - 1][x] = -matrixA[row][x] / matrixA[row][row - 1];
                 else
                     B[row - 1][row - 1] = 1 / matrixA[row][row - 1];
+                matrix.iterations++;
             }
             return B;
         }
@@ -157,10 +184,24 @@ namespace MyApp
             List<Matrix> arrayB = new List<Matrix>();
             for (int i = A.matrix.Count - 1; i > 0; i--)
             {
+                matrix.iterations++;
+                if (A.matrix[i][i - 1] == 0)
+                {
+                    for (int j = 0; j < A.matrix.Count; j++)
+                    {
+                        double temp = A.matrix[j][i];
+                        A.matrix[j][i] = A.matrix[j][i - 1];
+                        A.matrix[j][i - 1] = temp;
+                    }
+                    List<double> tempRow = new List<double>(A.matrix[i]);
+                    A.matrix[i] = new List<double>(A.matrix[i - 1]);
+                    A.matrix[i - 1] = tempRow;
+                }
+
                 Matrix B = new Matrix(GetB(A.matrix, i));
                 arrayB.Add(B);
                 Matrix BReverse = new Matrix(FindInverseMatrix(B.matrix));
-                A = (BReverse.matrixMultiplication(A.matrix)).matrixMultiplication(B.matrix);
+                A = (BReverse.MatrixMultiplication(A.matrix)).MatrixMultiplication(B.matrix);
             }
             return (A, arrayB);
         }
@@ -172,8 +213,14 @@ namespace MyApp
             coefficients[0] = 1;
             for (int i = 0; i < polynomialCoefficients.Count; i++)
             {
+                matrix.iterations++;
                 coefficients[i + 1] = -polynomialCoefficients[i];
             }
+            foreach (var item in coefficients)
+            {
+                Console.Write($"{item} ");
+            }
+            Console.WriteLine();
             Array.Reverse(coefficients);
             Polynomial poly = new Polynomial(coefficients);
 
@@ -181,10 +228,15 @@ namespace MyApp
             List<double> eigenValues = new List<double>();
             foreach (var root in roots)
             {
+                matrix.iterations++;
                 if (root.Imaginary == 0)
                 {
                     eigenValues.Add(root.Real);
                 }
+            }
+            if (eigenValues.Count == 0)
+            {
+                throw new Exception("There are no real solution");
             }
             Array.Reverse(coefficients);
             return (eigenValues, arrayB, coefficients);
@@ -194,53 +246,62 @@ namespace MyApp
             Matrix similarityMatrix = similarityMatrices[0];
             for (int i = 1; i < similarityMatrices.Count; i++)
             {
-                similarityMatrix = similarityMatrix.matrixMultiplication(similarityMatrices[i].matrix);
+                similarityMatrix = similarityMatrix.MatrixMultiplication(similarityMatrices[i].matrix);
             }
             Matrix ownVectors = new Matrix(Enumerable.Range(0, matrix.matrix.Count).Select(k => ownValues.Select(val => Math.Pow(val, matrix.matrix.Count - k - 1)).ToList()).ToList());
-            List<List<double>> transposedVectors = ownVectors.getTransposedMatrix();
+            List<List<double>> transposedVectors = ownVectors.GetTransposedMatrix();
 
             for (int i = 0; i < transposedVectors.Count; i++)
             {
                 transposedVectors[i] = similarityMatrix.MatrixMultiplication(transposedVectors[i]);
             }
+
             return transposedVectors;
+        }
+        public bool CheckEigenVectors(List<double> eigenValues, List<List<double>> eigenVectors)
+        {
+            double epsilon = 1e-6; // Точність перевірки
+
+            for (int i = 0; i < eigenValues.Count; i++)
+            {
+                List<double> Ax = matrix.MatrixMultiplication(eigenVectors[i]); // Обчислення A * x_i
+                List<double> lambda_x = eigenVectors[i].Select(val => val * eigenValues[i]).ToList(); // Обчислення λ_i * x_i
+
+                // Порівняння векторів Ax і λx
+                for (int j = 0; j < Ax.Count; j++)
+                {
+                    if (Math.Abs(Ax[j] - lambda_x[j]) > epsilon)
+                    {
+                        return false; // Власний вектор не є правильним для вказаного власного значення
+                    }
+                }
+            }
+
+            return true; // Власні вектори є правильними
         }
     }
     class Program
     {
         static void Main(string[] args)
         {
-            string input;
-            while(true)
+            Matrix matrix = new Matrix(new List<List<double>> { new List<double> { 4, 25, 12} ,
+                                                                new List<double> { 0, 5, 12},
+                                                                new List<double> { 2, 15, 2 }
+                                                               });
+            DanilevskiyMethod danilevskiyMethod = new DanilevskiyMethod(matrix);
+            var(a, b, c) =  danilevskiyMethod.GetEigenValues();
+            var d = danilevskiyMethod.GetEigenVectors(a, b);
+            foreach (var item in a)
             {
-                input = Console.ReadLine();
-                if (Double.TryParse(input, out double c))
-                {
-                    if (double.IsPositiveInfinity(c))
-                    {
-                        Console.WriteLine("Переповнення: значення дорівнює PositiveInfinity");
-                    }
-                    else if (double.IsNegativeInfinity(c))
-                    {
-                        Console.WriteLine("Переповнення: значення дорівнює NegativeInfinity");
-                    }
-                    else if (double.IsNaN(c))
-                    {
-                        Console.WriteLine("Помилка: значення дорівнює NaN (Not a Number)");
-                    }
-                    else
-                    {
-                        Console.WriteLine(c);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Не вдалося розпарсити значення.");
-                }
-
-
+                Console.WriteLine(item);
+            }
+            foreach (var item in d)
+            {
+                Console.WriteLine(String.Join(" ", item));
             }
 
+
+            Console.WriteLine(danilevskiyMethod.CheckEigenVectors(a, d));
         }
     }
 }

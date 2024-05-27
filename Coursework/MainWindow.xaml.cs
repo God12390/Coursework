@@ -41,12 +41,10 @@ namespace Coursework
                 }
             }
         }
-
         private void exitButton(object sender, RoutedEventArgs e)
         {
             Close();
         }
-
         private void calculateButton(object sender, RoutedEventArgs e)
         {
             Method method = SelectedMethod.SelectedIndex == 0 ? Method.Danilevskiy : Method.Rotation;
@@ -66,8 +64,8 @@ namespace Coursework
                 {
                     case Method.Danilevskiy:
                         matrixController.CalculateDanilevskiy();
-                        graphController = new GraphController(matrixController.polynomialCoefficients, matrixController.eigenValues.Min(), 
-                                                              matrixController.eigenValues.Max(), matrixController.eigenValues.ToArray());
+                        graphController = new GraphController(matrixController.PolynomialCoefficients, matrixController.EigenValues.Min(), 
+                                                          matrixController.EigenValues.Max(), matrixController.EigenValues.ToArray());
                         break;
                     case Method.Rotation:
                         double tolerance = double.Parse((SelectedTolerance.SelectedItem as ComboBoxItem)?.Content.ToString());
@@ -76,9 +74,9 @@ namespace Coursework
                     default:
                         break;
                 }
-                eigenPairs = matrixController.eigenValues.Select((value, index) => new EigenPair {
+                eigenPairs = matrixController.EigenValues.Select((value, index) => new EigenPair {
                     EigenValue = value,
-                    EigenVector = matrixController.eigenVectors[index].ToArray()
+                    EigenVector = matrixController.EigenVectors[index].ToArray()
                 }).ToList();
 
                 EigenDataGrid.ItemsSource = eigenPairs;
@@ -91,7 +89,7 @@ namespace Coursework
 
         private void buttonClear(object sender, RoutedEventArgs e)
         {
-            matrixController.matrix = new Matrix(matrixController.matrix.matrix.Count);
+            matrixController.Matrix = new Matrix(matrixController.Matrix.MatrixData.Count);
             matrixController?.clearMatrixData(MatrixGrid);
             plotView.Visibility = Visibility.Collapsed;
             EigenDataGrid.ItemsSource = null;
@@ -99,8 +97,8 @@ namespace Coursework
 
         private void buttonSave(object sender, RoutedEventArgs e)
         {
-            var selectedFilePath = SelectedFile.Text;
-            fileController.saveToFile(selectedFilePath, eigenPairs, matrixController.matrix.matrix);
+            string selectedFilePath = SelectedFile.Text;
+            fileController.saveToFile(selectedFilePath, eigenPairs, matrixController.Matrix.MatrixData);
         }
         private void GenerateMatrixButton(object sender, RoutedEventArgs e)
         {
@@ -108,7 +106,8 @@ namespace Coursework
         }
         private void ButtonShowComplexity(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show($"Number of iterations: {matrixController.iterations}");
+            MessageBox.Show($"Number of iterations: {matrixController.Iterations}\n" +
+                            $"Calculation time: {matrixController.CalculationTime} ms");
         }
         private void buttonSelectFile(object sender, RoutedEventArgs e)
         {
@@ -121,10 +120,10 @@ namespace Coursework
 
         private void buildGraphButton(object sender, RoutedEventArgs e)
         {
-            plotView.Visibility = Visibility.Visible;
             try
             {
-            plotView.Model = graphController?.buildGraph();
+                plotView.Visibility = Visibility.Visible;
+                plotView.Model = graphController?.buildGraph();
                 
             }
             catch (Exception ex)
